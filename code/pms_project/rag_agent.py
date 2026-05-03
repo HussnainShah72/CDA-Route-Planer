@@ -81,6 +81,10 @@ class GroundedRouteAgent:
             grounded = self.path_response(option)
             return self.polish_with_llm(query, grounded)
 
+        if not mentioned:
+            if any(greet in lower_query for greet in ["hello", "hi", "hey", "help"]):
+                return "Hello! Ask me about routes, travel time, transfers, and next departures between CDA stops."
+
         return "Stop not found in current dataset"
 
     def find_mentioned_stops(self, query: str) -> list[str]:

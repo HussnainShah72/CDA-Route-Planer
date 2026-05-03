@@ -175,7 +175,12 @@ def render_chat(routes: pd.DataFrame) -> None:
     """Render the trip-planning chat panel."""
 
     if "messages" not in st.session_state:
-        st.session_state.messages = []
+        st.session_state.messages = [
+            {
+                "role": "assistant",
+                "content": "I'm your CDA AI Agent. I have access to your Event Logs and Trip CSV. Ask me anything!"
+            }
+        ]
 
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):

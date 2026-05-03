@@ -12,6 +12,9 @@ from pms_project.config import DEFAULT_SERVICE_DATE, DEFAULT_TIMEZONE
 from pms_project.xes_logging import load_routes_for_xes
 
 
+import streamlit as st
+
+@st.cache_resource
 def discover_process_model(
     routes_csv: Path,
     miner: str = "heuristic",
