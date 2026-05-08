@@ -96,9 +96,16 @@ def main() -> None:
                 os.environ["GROQ_API_KEY"] = llm_key
             else:
                 os.environ["OPENAI_API_KEY"] = llm_key
+        st.checkbox(
+            "Polish route answers with LLM (slower; needs API key)",
+            value=False,
+            key="polish_llm",
+            help="When off, trip plans use instant grounded text. When on, replies are rewritten via Groq/OpenAI.",
+        )
 
     filtered = filter_routes(routes, selected_route)
     threshold_seconds = threshold_minutes * 60
+    transitions = transition_table(filtered)
 
     summary = throughput_summary(filtered)
     col_a, col_b, col_c = st.columns(3)
@@ -109,11 +116,13 @@ def main() -> None:
     map_col, analytics_col = st.columns([2, 1])
     with map_col:
         st.subheader("Process Map")
-        st.graphviz_chart(build_process_dot(filtered, threshold_seconds), use_container_width=True)
+        st.graphviz_chart(
+            build_process_dot(filtered, threshold_seconds, transitions),
+            use_container_width=True,
+        )
 
     with analytics_col:
         st.subheader("Evidence")
-        transitions = transition_table(filtered)
         st.caption(f"Miner selected: {miner}")
         validate_miner(ROUTES_CSV, miner)
         st.dataframe(
@@ -150,11 +159,10 @@ def main() -> None:
         )
 
     st.subheader("Grounded Trip Planner")
-    render_chat(routes)
+    render_chat_fragment()
 
-    st.subheader("Personal Route Map Bonus")
-    render_personal_maps(routes)
-    render_hussnain_commute(routes)
+    with st.expander("Personal Route Map Bonus", expanded=True):
+        render_personal_maps(routes)
 
 
 @st.cache_data
@@ -165,26 +173,35 @@ def load_routes(path: Path) -> pd.DataFrame:
 
 
 @st.cache_resource
-def build_agent(_routes: pd.DataFrame) -> GroundedRouteAgent:
-    """Cache the grounded route agent."""
+def build_agent(_routes: pd.DataFrame, use_llm: bool) -> GroundedRouteAgent:
+    """Cache the grounded route agent (separate cache entries per LLM mode)."""
 
-    return GroundedRouteAgent(_routes)
+    return GroundedRouteAgent(_routes, use_llm=use_llm)
 
 
-def render_chat(routes: pd.DataFrame) -> None:
-    """Render the trip-planning chat panel."""
+@st.fragment
+def render_chat_fragment() -> None:
+    """Chat-only reruns: avoids rebuilding process maps when sending a message."""
+
+    routes = load_routes(ROUTES_CSV)
+    use_llm = bool(st.session_state.get("polish_llm", False))
 
     if "messages" not in st.session_state:
         st.session_state.messages = [
             {
                 "role": "assistant",
-                "content": "I'm your CDA AI Agent. I have access to your Event Logs and Trip CSV. Ask me anything!"
+                "content": (
+                    "Hi! I’m your **CDA trip assistant**. I answer from your schedule "
+                    "data (`routes.csv`): routes between stops, which line serves a "
+                    "stop, and departures. Say hello, ask **what you can do**, or try "
+                    "“from [stop A] to [stop B]”."
+                ),
             }
         ]
 
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
-            st.write(message["content"])
+            st.markdown(message["content"])
 
     prompt = st.chat_input("Ask about routes, stops, departures, or travel time")
     if not prompt:
@@ -194,11 +211,47 @@ def render_chat(routes: pd.DataFrame) -> None:
     with st.chat_message("user"):
         st.write(prompt)
 
-    agent = build_agent(routes)
-    answer = agent.answer(prompt)
+    agent = build_agent(routes, use_llm)
+    with st.spinner("Thinking…"):
+        answer = agent.answer(prompt)
     st.session_state.messages.append({"role": "assistant", "content": answer})
     with st.chat_message("assistant"):
-        st.write(answer)
+        st.markdown(answer)
+
+
+def build_personal_commute_trace(item: dict[str, object]) -> pd.DataFrame:
+    """Build a member-specific commute trace table from a route option."""
+
+    option = item.get("option")
+    if option is None:
+        return pd.DataFrame()
+
+    rows: list[dict[str, object]] = []
+    cumulative_seconds = 0.0
+    for index, stop in enumerate(option.stops):
+        previous_stop = option.stops[index - 1] if index > 0 else ""
+        route_id = option.routes[index - 1] if index > 0 and index - 1 < len(option.routes) else ""
+        duration = option.steps[index - 1].duration_seconds if index > 0 else 0.0
+        cumulative_seconds += duration
+        rows.append(
+            {
+                "member_name": item.get("member_name", ""),
+                "member_id": item.get("member_id", ""),
+                "home_area": item.get("home_area", ""),
+                "origin_stop": item.get("origin_stop", ""),
+                "destination_stop": item.get("destination_stop", ""),
+                "status": item.get("status", ""),
+                "event_order": index + 1,
+                "stop_name": stop,
+                "previous_stop": previous_stop,
+                "route_id": route_id,
+                "transition_seconds_from_previous": duration,
+                "cumulative_seconds": cumulative_seconds,
+                "cumulative_time": format_seconds(cumulative_seconds),
+            }
+        )
+
+    return pd.DataFrame(rows)
 
 
 def render_personal_maps(routes: pd.DataFrame) -> None:
@@ -211,19 +264,45 @@ def render_personal_maps(routes: pd.DataFrame) -> None:
         return
 
     st.caption(
-        "Fill home_area and nearest_stop in data/personal_routes.csv, using exact "
+        "Fill home_area and destination_stop in data/personal_routes.csv, using exact "
         "stop names from routes.csv."
     )
-    st.dataframe(personal_routes, use_container_width=True, hide_index=True)
 
-    options = build_personal_options(routes, personal_routes)
-    st.dataframe(personal_option_table(options), use_container_width=True, hide_index=True)
-    for item in options:
-        option = item.get("option")
-        if option is None:
-            continue
-        st.markdown(f"**{item['member_name']}**")
-        st.graphviz_chart(build_personal_dot(option), use_container_width=True)
+    agent = build_agent(routes, False)
+    options = build_personal_options(agent, personal_routes)
+    member_names = [item["member_name"] for item in options]
+    selected_member = st.selectbox(
+        "View personal route details for:",
+        member_names,
+        index=0,
+    )
+
+    selected = next(
+        (item for item in options if item["member_name"] == selected_member),
+        None,
+    )
+    if selected is None:
+        st.warning("Selected member data is not available.")
+        return
+
+    option = selected.get("option")
+    st.markdown(f"**{selected_member}**")
+    st.markdown(
+        f"**Home area:** {selected.get('home_area', '')}  \n"
+        f"**Origin stop:** {selected.get('origin_stop', '')}  \n"
+        f"**Destination stop:** {selected.get('destination_stop', '')}  \n"
+        f"**Status:** {selected.get('status', '')}"
+    )
+    if option is None:
+        return
+
+    st.markdown(f"**Route path:** {' → '.join(option.stops)}")
+    st.dataframe(
+        build_personal_commute_trace(selected),
+        use_container_width=True,
+        hide_index=True,
+    )
+    st.graphviz_chart(build_personal_dot(option), use_container_width=True)
 
 
 def render_hussnain_commute(routes: pd.DataFrame) -> None:

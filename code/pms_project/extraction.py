@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Iterable
-from urllib.parse import urljoin
+from urllib.parse import unquote, urljoin
 from urllib.request import urlopen
 
 import pandas as pd
@@ -46,6 +46,7 @@ def download_cda_route_pdfs(
     destination: Path = RAW_PDF_DIR,
     transit_url: str = CDA_TRANSIT_URL,
     limit: int | None = None,
+    route_ids: list[str] | None = None,
 ) -> list[Path]:
     """Download route PDF links discovered on the CDA transit map page."""
 
@@ -53,7 +54,10 @@ def download_cda_route_pdfs(
     html_text = fetch_text(transit_url)
     pdf_urls = discover_pdf_links(html_text, transit_url)
 
-    unique_urls = select_forward_pdf_urls(pdf_urls, limit)
+    if route_ids:
+        unique_urls = select_forward_pdf_urls_for_route_ids(pdf_urls, route_ids)
+    else:
+        unique_urls = select_forward_pdf_urls(pdf_urls, limit)
 
     downloaded: list[Path] = []
     for index, url in enumerate(unique_urls, start=1):
@@ -86,6 +90,59 @@ def select_forward_pdf_urls(pdf_urls: list[str], limit: int | None) -> list[str]
     if limit is not None:
         selected = selected[:limit]
     return selected
+
+
+def infer_route_id_from_pdf_url(url: str) -> str | None:
+    """Best-effort route id from a CDA schedule PDF URL or filename."""
+
+    name = unquote(Path(url.split("?")[0]).name)
+    match = re.search(
+        r"(?P<route>(?:FR|ST|FRB|FRG|BL|OR|GR|YL|RD)-?\d{1,2}[A-Z]?)",
+        name,
+        re.IGNORECASE,
+    )
+    if not match:
+        return None
+    return normalize_route_id(match.group("route"))
+
+
+def select_forward_pdf_urls_for_route_ids(
+    pdf_urls: list[str],
+    route_ids: list[str],
+) -> list[str]:
+    """Pick forward-pass PDF URLs matching explicit route ids, in list order."""
+
+    forward = [
+        url
+        for url in dict.fromkeys(pdf_urls)
+        if re.search(r"forward", url, re.IGNORECASE)
+        and not re.search(
+            r"backward|reverse|return|transit[-_ ]?map", url, re.IGNORECASE
+        )
+    ]
+    by_id: dict[str, str] = {}
+    for url in forward:
+        rid = infer_route_id_from_pdf_url(url)
+        if rid and rid not in by_id:
+            by_id[rid] = url
+
+    ordered: list[str] = []
+    missing: list[str] = []
+    for raw_id in route_ids:
+        rid = normalize_route_id(raw_id)
+        url = by_id.get(rid)
+        if url is None:
+            missing.append(rid)
+        else:
+            ordered.append(url)
+
+    if missing:
+        raise RuntimeError(
+            "Could not find forward PDF URLs for route(s): "
+            f"{', '.join(missing)}. "
+            f"Discovered forward route ids: {', '.join(sorted(by_id))}."
+        )
+    return ordered
 
 
 def discover_pdf_links(html_text: str, base_url: str) -> list[str]:
@@ -343,15 +400,45 @@ def build_routes_csv(
     output_path: Path,
     source_dir: Path | None = None,
     limit: int | None = None,
+    route_ids: list[str] | None = None,
 ) -> Path:
     """Build routes.csv from local PDFs or freshly downloaded CDA PDFs."""
 
     pdf_dir = source_dir
     if pdf_dir is None:
-        pdfs = download_cda_route_pdfs(RAW_PDF_DIR, limit=limit)
+        pdfs = download_cda_route_pdfs(
+            RAW_PDF_DIR,
+            limit=limit,
+            route_ids=route_ids,
+        )
         frame = parse_pdf_files(pdfs)
     else:
-        frame = parse_pdf_folder(pdf_dir)
+        if route_ids:
+            all_pdfs = sorted(source_dir.glob("*.pdf"))
+            selected: list[Path] = []
+            missing: list[str] = []
+            by_id: dict[str, Path] = {}
+            for path in all_pdfs:
+                if not is_forward_schedule_pdf(path):
+                    continue
+                rid = infer_route_id_from_pdf_url(path.name)
+                if rid and rid not in by_id:
+                    by_id[rid] = path
+            for raw_id in route_ids:
+                rid = normalize_route_id(raw_id)
+                p = by_id.get(rid)
+                if p is None:
+                    missing.append(rid)
+                else:
+                    selected.append(p)
+            if missing:
+                raise FileNotFoundError(
+                    f"No forward PDF in {source_dir} for: {', '.join(missing)}. "
+                    f"Found: {sorted(by_id)}"
+                )
+            frame = parse_pdf_files(selected)
+        else:
+            frame = parse_pdf_folder(pdf_dir)
 
     if frame.empty:
         raise RuntimeError(

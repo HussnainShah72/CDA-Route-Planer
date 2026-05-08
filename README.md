@@ -36,16 +36,30 @@ and set `OPENAI_API_KEY`.
 
 ## Run The Pipeline
 
-Download and parse the CDA schedule PDFs:
+Download and parse the CDA schedule PDFs.
+
+**Group dataset (8 forward routes, `GROUP_DATASET_ROUTE_IDS` in `code/pms_project/config.py`):**
+
+```powershell
+python code/run_pipeline.py extract --group-dataset
+```
+
+**Arbitrary first N forward PDFs from the CDA page (legacy):**
 
 ```powershell
 python code/run_pipeline.py extract --limit 8
 ```
 
+**Explicit routes (comma-separated, forward PDFs only):**
+
+```powershell
+python code/run_pipeline.py extract --route-ids FR-01,FR-07,FR-15
+```
+
 If you already downloaded route PDFs, parse them from a folder:
 
 ```powershell
-python code/run_pipeline.py extract --source-dir .\route_pdfs
+python code/run_pipeline.py extract --source-dir .\data\raw_pdfs --group-dataset
 ```
 
 Create the XES log:
@@ -57,7 +71,7 @@ python code/run_pipeline.py xes
 Run everything:
 
 ```powershell
-python code/run_pipeline.py all --limit 8
+python code/run_pipeline.py all --group-dataset
 ```
 
 Launch the GUI:

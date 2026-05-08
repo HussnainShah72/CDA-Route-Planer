@@ -1,5 +1,5 @@
-member_name,member_id,home_area,origin_stop,nearest_stop
-Hussnain Haider,i23-0695,G-13/2,NUST Metro Station,FAST University
-Uzair Majeed,i233063,,FAST University,
-Faez Ahmed,i23-0598,,FAST University,
-Hashir Nabeel,i233047,,FAST University,
+member_name,member_id,home_area,origin_stop,destination_stop
+Hussnain Haider,i23-0695,G-13/2,G-13 Metro Station,FAST University
+Uzair Majeed,i233063,G-15/4,NUST Metro Station,FAST University
+Faez Ahmed,i23-0598,"Sadiqabad, Rawalpindi",Pir Wadhai Morh,FAST University
+Hashir Nabeel,i233047,DHA Phase 2,Khanna Pul,FAST University

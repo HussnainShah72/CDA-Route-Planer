@@ -1,6 +1,0 @@
-case_id,member_name,member_id,home_area,home_nearest_stop,destination_area,destination_stop,route_id,event_order,stop_name,previous_stop,transition_seconds_from_previous,cumulative_seconds,cumulative_time
-HUSSNAIN-G13-FAST,Hussnain Haider,i23-0695,G-13/2,NUST Metro Station,H-11/4 (FAST-NU),FAST University,FR-01,1,NUST Metro Station,,0.0,0.0,0 sec
-HUSSNAIN-G13-FAST,Hussnain Haider,i23-0695,G-13/2,NUST Metro Station,H-11/4 (FAST-NU),FAST University,FR-01,2,Police Foundation Metro Station,NUST Metro Station,110.0,110.0,1 min 50 sec
-HUSSNAIN-G13-FAST,Hussnain Haider,i23-0695,G-13/2,NUST Metro Station,H-11/4 (FAST-NU),FAST University,FR-01,3,Npa Stop,Police Foundation Metro Station,150.0,260.0,4 min 20 sec
-HUSSNAIN-G13-FAST,Hussnain Haider,i23-0695,G-13/2,NUST Metro Station,H-11/4 (FAST-NU),FAST University,FR-01,4,Islamic University,Npa Stop,140.0,400.0,6 min 40 sec
-HUSSNAIN-G13-FAST,Hussnain Haider,i23-0695,G-13/2,NUST Metro Station,H-11/4 (FAST-NU),FAST University,FR-01,5,FAST University,Islamic University,160.0,560.0,9 min 20 sec

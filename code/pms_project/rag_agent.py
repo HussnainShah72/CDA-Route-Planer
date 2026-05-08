@@ -64,6 +64,10 @@ class GroundedRouteAgent:
     def answer(self, query: str) -> str:
         """Answer a trip-planning query without inventing stops."""
 
+        small_talk = self.try_small_talk_reply(query)
+        if small_talk is not None:
+            return small_talk
+
         mentioned = self.find_mentioned_stops(query)
         lower_query = query.casefold()
 
@@ -82,10 +86,91 @@ class GroundedRouteAgent:
             return self.polish_with_llm(query, grounded)
 
         if not mentioned:
-            if any(greet in lower_query for greet in ["hello", "hi", "hey", "help"]):
-                return "Hello! Ask me about routes, travel time, transfers, and next departures between CDA stops."
+            return (
+                "I need at least one CDA stop name from your data to look up routes "
+                "or times. Try: “from [stop A] to [stop B]”, “which route serves "
+                "[stop]?”, or “last bus from [stop]”. You can also ask what I can do."
+            )
 
-        return "Stop not found in current dataset"
+        return (
+            f"I found “{mentioned[0]}” but need a second stop (or a question like "
+            "“which route serves …?”) to plan a trip."
+        )
+
+    def try_small_talk_reply(self, query: str) -> str | None:
+        """Handle greetings and meta questions without calling the LLM."""
+
+        text = normalize(query)
+        if not text:
+            return None
+
+        # Thanks / goodbye (check before generic tokens)
+        if any(
+            phrase in text
+            for phrase in (
+                "thank you",
+                "thanks",
+                "appreciate it",
+                "thx",
+            )
+        ):
+            return "You’re welcome! Ask anytime about CDA routes, stops, or travel times."
+
+        if any(
+            phrase in text
+            for phrase in (
+                "bye",
+                "goodbye",
+                "see you",
+                "take care",
+            )
+        ):
+            return "Goodbye — safe travels. Come back if you need another route check."
+
+        purpose_phrases = (
+            "what can you do",
+            "what do you do",
+            "your purpose",
+            "what is your purpose",
+            "who are you",
+            "how can you help",
+            "what are you",
+            "capabilities",
+            "help me",
+            "how does this work",
+            "what is this",
+            "introduce yourself",
+        )
+        if any(p in text for p in purpose_phrases) or text in ("help",):
+            return (
+                "**What I do:** I’m a grounded assistant for this Streamlit demo. "
+                "I use your bus schedule extract (event log / `routes.csv`) to:\n\n"
+                "- Plan a **path between two stops** (with transfers modeled).\n"
+                "- Say **which routes** pass a stop.\n"
+                "- Give **last** (or path-based **next**) **departure** times from the file.\n\n"
+                "I won’t invent stops or times that aren’t in the dataset. "
+                "Name stops as they appear in your data for best results."
+            )
+
+        # Greetings (after purpose so “help me …” matches purpose)
+        if any(p in text for p in ("good morning", "good afternoon", "good evening")):
+            return (
+                "Hi! I’m your **CDA trip assistant** for this project. I answer using "
+                "only your `routes.csv` data: paths between stops, which routes serve "
+                "a stop, first/next and last departures, and travel-time style hints. "
+                "Try: “from [stop A] to [stop B]” or “what can you do?”"
+            )
+
+        words = set(text.split())
+        if words & {"hi", "hello", "hey", "greetings", "howdy"}:
+            return (
+                "Hi! I’m your **CDA trip assistant** for this project. I answer using "
+                "only your `routes.csv` data: paths between stops, which routes serve "
+                "a stop, first/next and last departures, and travel-time style hints. "
+                "Try: “from [stop A] to [stop B]” or “what can you do?”"
+            )
+
+        return None
 
     def find_mentioned_stops(self, query: str) -> list[str]:
         """Find stop names that occur in a user query."""

@@ -61,10 +61,12 @@ def filter_routes(frame: pd.DataFrame, route_id: str) -> pd.DataFrame:
 def build_process_dot(
     frame: pd.DataFrame,
     threshold_seconds: float,
+    transitions: pd.DataFrame | None = None,
 ) -> str:
     """Build a Graphviz DOT directly-follows map with edge annotations."""
 
-    transitions = transition_table(frame)
+    if transitions is None:
+        transitions = transition_table(frame)
     nodes = sorted(set(transitions["source"]).union(set(transitions["target"])))
     lines = [
         "digraph G {",
