@@ -204,8 +204,8 @@ def main() -> None:
     """, unsafe_allow_html=True)
 
     # Banner at the top
-    if Path("assets/banner.png").exists():
-        st.image("assets/banner.png", use_container_width=True)
+    if Path("code/assets/banner.png").exists():
+        st.image("code/assets/banner.png", use_container_width=True)
     
     st.title("CDA Bus Route Process Mining")
     st.divider()
@@ -221,8 +221,8 @@ def main() -> None:
     route_options = ["All Routes"] + sorted(routes["route_id"].unique())
 
     with st.sidebar:
-        if Path("assets/logo.png").exists():
-            st.image("assets/logo.png", use_container_width=True)
+        if Path("code/assets/logo.png").exists():
+            st.image("code/assets/logo.png", use_container_width=True)
         st.header("Controls")
         selected_route = st.selectbox("Route filter", route_options)
         miner = st.selectbox("Discovery miner", ["Heuristic Miner", "Inductive Miner"])
