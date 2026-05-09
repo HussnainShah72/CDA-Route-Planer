@@ -4,3 +4,14 @@ __pycache__/
 *.pyc
 .streamlit/
 data/raw_pdfs/
+
+.env
+.venv/
+__pycache__/
+*.pyc
+.streamlit/
+data/raw_pdfs/
+
+venv/
+venv
+/venv/

@@ -1,0 +1,366 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{float}
+\usepackage{titlesec}
+\usepackage{setspace}
+
+% Title Formatting
+\titleformat{\section}{\normalfont\Large\bfseries}{\thesection}{1em}{}[{\titlerule[0.8pt]}]
+\onehalfspacing
+
+\begin{document}
+
+% --- TITLE PAGE ---
+\begin{titlepage}
+    \centering
+    \vspace*{1cm}
+    \includegraphics[width=0.3\textwidth]{fast.png} \\
+    \vspace{1cm}
+    \textsc{\Large FAST - National University of Computer \& Emerging Sciences}\\[0.5cm]
+    \textsc{\large Department of Software Engineering}\\[2cm]
+    \hrule
+    \vspace{0.5cm}
+    {\huge \textbf{Process Mining: CDA Bus Route Analysis}}\\[0.5cm]
+    \hrule
+    \vspace{2cm}
+    \begin{minipage}{0.45\textwidth}
+        \begin{flushleft} \large
+            \textbf{Submitted By:}\\
+            Uzair Majeed (23i-3063)\\
+            Hussnain Haider (23i-0695)\\
+            Faez Ahmed (23i-0598)\\
+            Hashir Nabeel (23i-3047)
+        \end{flushleft}
+    \end{minipage}%
+    \hfill
+    \begin{minipage}{0.45\textwidth}
+        \begin{flushright} \large
+            \textbf{Instructor:} \\
+            Dr. Isma ul Hassan \\
+        \end{flushright}
+
+        \vspace{0.5cm}
+        \begin{flushright} \large
+            \textbf{Teacher Assistants:} \\
+            Ali Rizwan \\
+            Muhammad Bin
+        \end{flushright}
+        
+    \end{minipage}
+            
+    \vfill
+    {\large \textbf{Course:} SE4009 - Process Mining \& Simulation}\\
+    {\large \textbf{Date:} May 10, 2026}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{Introduction}
+The CDA Bus Route Analysis project applies advanced process mining techniques to the public transit network of the Islamabad Capital Territory. By utilizing a highly modular Python architecture, the system translates raw transit schedules into actionable event logs, performs process discovery, and identifies infrastructural bottlenecks. Furthermore, the system integrates a Large Language Model (LLM) powered by Groq to serve as an interactive, data-grounded Agentic AI trip planner. The entire system is encapsulated within a custom-designed, premium Streamlit graphical user interface (GUI).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{logo.png}
+    \caption{Our system's logo.}
+\end{figure}
+
+\section{System Architecture \& Workflow}
+The project is built with a strictly modular architecture to separate data processing, analytical logic, and user interface components.
+
+\subsection{Project File Structure}
+The following structure ensures scalability and maintainability:
+\begin{itemize}
+    \item \textbf{Root Directory:}
+    \begin{itemize}
+        \item \texttt{report.pdf}: The academic documentation source.
+        \item \texttt{README.md}: Setup and deployment instructions.
+        \item \texttt{requirements.txt}: Python environment dependencies.
+    \end{itemize}
+    \item \textbf{\texttt{data/}}: Data storage and validation layer.
+    \begin{itemize}
+        \item \texttt{routes.csv}: Cleaned, structured transit dataset.
+        \item \texttt{cda\_bus\_routes.xes}: The formalized process mining event log.
+        \item \texttt{personal\_routes.csv}: Commute definitions for group members.
+        \item \texttt{verify\_xes.py}: Automated validation script for XES integrity.
+        \item \texttt{raw\_pdfs/}: Local cache of original CDA transit schedules.
+    \end{itemize}
+    \item \textbf{\texttt{code/}}: Application and Logic layer.
+    \begin{itemize}
+        \item \texttt{app.py}: The primary Streamlit GUI and controller.
+        \item \texttt{run\_pipeline.py}: CLI tool for end-to-end data processing.
+        \item \textbf{\texttt{pms\_project/}}: Core library modules.
+        \begin{itemize}
+            \item \texttt{process\_mining.py}: Trace construction and DOT logic.
+            \item \texttt{analytics.py}: Throughput and Bottleneck math.
+            \item \texttt{rag\_agent.py}: LangChain / Groq AI integration.
+            \item \texttt{personal\_maps.py}: Orientation and shortest-path logic.
+            \item \texttt{commute\_case.py}: Manual trace builders for bonus tasks.
+            \item \texttt{extraction.py}: PDF parsing and data cleaning logic.
+            \item \texttt{config.py}: Global paths and shared constants.
+        \end{itemize}
+    \end{itemize}
+\end{itemize}
+
+\subsection{Operational Workflow}
+The system operates through a sequential data pipeline as shown in the workflow below:
+\begin{enumerate}
+    \item \textbf{Data Ingestion:} Raw schedules are loaded via Pandas and cleaned for timestamp consistency.
+    \item \textbf{Trace Construction:} Individual bus trips are grouped into "Traces" and exported to the IEEE XES standard format.
+    \item \textbf{Process Discovery:} Directly-follows relationships are calculated to build a Transition Matrix.
+    \item \textbf{Performance Layer:} The matrix is enriched with timing data to calculate throughput and flag delays.
+    \item \textbf{Interactive Layer:} The Streamlit GUI renders the analytics while the RAG Agent provides a natural language interface to the same underlying graph.
+\end{enumerate}
+
+\subsection{System Execution \& Commands}
+To deploy and verify the system, the following CLI commands are utilized:
+\begin{itemize}
+    \item \textbf{Main Dashboard:} Launch the Streamlit interface:
+    \begin{verbatim}
+    streamlit run code/app.py
+    \end{verbatim}
+    \item \textbf{XES Validation:} Run the PM4Py discovery script:
+    \begin{verbatim}
+    python3 data/verify_xes.py
+    \end{verbatim}
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{terminal.png}
+    \caption{Terminal output showing the successful launch of the dashboard and XES validation script.}
+\end{figure}
+
+\section{Task 1: Data Extraction}
+\subsection{Objective}
+Extract, clean, and structure the raw CDA bus transit schedules into a formalized dataset suitable for advanced process mining and algorithmic trace log construction.
+
+\subsection{Implementation Details}
+The \texttt{task1\_data\_extraction} module was developed to parse the raw transit tables provided. The raw data contained route designations, stop locations, and corresponding temporal data. 
+This data was rigorously cleaned and transformed into a standardized Pandas DataFrame (\texttt{routes.csv}) containing structured columns: \texttt{route\_id}, \texttt{stop\_name}, \texttt{arrival\_time}, and \texttt{departure\_time}. Data types were strictly cast, and sequential ordering was enforced to guarantee temporal consistency for downstream case inference.
+
+% TODO: ADD YOUR SCREENSHOT HERE
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{routes.png}
+    \caption{The structured routes.csv dataframe extracted from the raw data, ready for Trace Log generation.}
+\end{figure}
+
+\section{Task 2: Trace Log Construction}
+\subsection{Objective}
+Construct a process mining event log from the raw bus dataset by exporting it as an XES-compliant file, validating it for standard academic and industrial process mining workflows.
+
+\subsection{Implementation Details}
+The transit data was parsed into a structured format where individual bus trips were inferred as unique "cases" by grouping consecutive stops along specific \texttt{route\_id}s. 
+The \texttt{xes\_builder.py} module was implemented to iterate over these grouped dataframes, generating standard XES XML trees. 
+\begin{itemize}
+    \item \textbf{Metadata:} Global extensions (Concept, Time, Lifecycle) were injected at the root level, alongside \texttt{xes.version="1.0"}.
+    \item \textbf{Event Tracking:} Every stop visit was recorded as an event, capturing \texttt{stop\_name} as the \texttt{concept:name} and properly formatting the departure and arrival times into ISO 8601 strings with timezone localization.
+\end{itemize}
+
+\subsection{Tool Validation}
+The generated \texttt{cda\_event\_log.xes} file was verified by importing it into an external Process Mining Tool to ensure structural integrity and correct trace mapping.
+
+% TODO: ADD YOUR SCREENSHOT HERE
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{raw_xes.png}
+    \caption{Raw XES File that was generated.}
+\end{figure}
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{verify_script.png}
+    \caption{XES VALIDATOR SCRIPT.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{verifyxes.png}
+    \caption{XES Trace Log successfully loaded and analyzed in an external Process Mining Tool (PM4PY SCRIPT).}
+\end{figure}
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\textwidth]{task2_heuristic_miner.png}
+    \caption{Heuristic Mining.}
+\end{figure}
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\textwidth]{task2_inductive_miner.png}
+    \caption{Inductive Mining.}
+\end{figure}
+
+
+
+
+\section{Task 3: Process Discovery \& Interactive GUI}
+\subsection{Objective}
+Discover a formal process map from the event logs and present it in an interactive GUI supporting dynamic filtering and rich edge annotations.
+
+\subsection{Implementation Details}
+A premium, dark-themed (Charcoal and Gold) Streamlit dashboard was developed. Process mapping was implemented without relying solely on black-box external tools; instead, a custom \texttt{transition\_table} was calculated using pandas DataFrame shifting to identify directly-follows relationships between transit stops.
+
+\begin{itemize}
+    \item \textbf{Graphviz Rendering:} The \texttt{process\_mining.py} module translates the transition matrices into Graphviz DOT syntax. The graph background is set to a high-contrast cream (\texttt{\#E8DDB4}) with all non-bottleneck edges rendered as solid black for maximum visibility.
+    \item \textbf{Route Filtering:} The sidebar provides a dynamic select box. When a specific route (e.g., FR-01) is chosen, the underlying dataframe is filtered, instantly re-rendering a highly focused sub-graph. Selecting "All Routes" displays the interconnected macro-network.
+    \item \textbf{Strict Label Formatting:} In accordance with the assignment requirements, every directed edge is explicitly annotated using the format: \textbf{\texttt{Source $\to$ Target = Duration (cases: n)}}. For example, \textit{PAEC $\to$ IMC = 1 min 45 sec (cases: 5)}.
+\end{itemize}
+
+% TODO: ADD YOUR SCREENSHOT HERE
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{dashboard.png}
+    \caption{Interactive GUI displaying the complete process map with transition durations and case frequencies.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{graph.png}
+    \caption{Process Graph for All Routes. Too long to fit in image. Continued...}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{graph2.png}
+    \caption{Continued.}
+\end{figure}
+
+% TODO: ADD YOUR SCREENSHOT HERE
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{filtering.png}
+    \caption{Process map filtered by a specific FR01 using the sidebar dropdown.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{fs.png}
+    \caption{Process map filtered by a specific FR01 Full screen view.}
+\end{figure}
+
+
+\section{Task 4: Performance \& Bottleneck Analytics}
+\subsection{Objective}
+Enrich the GUI with statistical timing information and automatically highlight transit bottlenecks based on empirical data.
+
+\subsection{Implementation Details}
+Performance analytics were deeply integrated into the analytical pipeline:
+\begin{itemize}
+    \item \textbf{Throughput Metrics:} The total end-to-end duration for every individual case was calculated ($T_{total} = t_{last\_departure} - t_{first\_arrival}$). The globally computed Average, Minimum, and Maximum throughput times are displayed natively via highly visible metric cards at the top of the dashboard.
+    \item \textbf{Bottleneck Detection:} A dynamic threshold slider allows stakeholders to define what constitutes a delay (e.g., transitions taking longer than 5 minutes). The system loops over the transition matrix; any edge whose \texttt{avg\_duration\_seconds} exceeds this threshold is highlighted in a thick red (\texttt{\#C62828}) stroke on the Process Graph.
+    \item \textbf{Bottleneck Summary:} A dedicated GUI panel lists the top slowest transitions, sorted in descending order, to immediately draw attention to the most severe infrastructural delays.
+\end{itemize}
+
+% TODO: ADD YOUR SCREENSHOT HERE
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{bottleeneck.png}
+    \caption{GUI displaying throughput analytics and automatically highlighted bottleneck transitions in red.}
+\end{figure}
+
+\section{Task 5: Agentic AI Trip Planner}
+\subsection{Objective}
+Integrate a conversational AI agent into the GUI that answers natural-language trip-planning queries grounded in the discovered CDA route data, strictly avoiding hallucinations.
+
+\subsection{Implementation Details}
+To bridge the gap between process mining and end-user utility, a "Grounded AI Trip Planner" was embedded into the GUI. 
+\begin{itemize}
+    \item \textbf{Agent Architecture:} The system utilizes a LangChain-powered agent backed by Groq's LLaMA-3.3-70b model. It uses a Retrieval-Augmented Generation (RAG) pattern to fetch real-time scheduling data.
+    \item \textbf{Data Grounding:} Instead of relying on the LLM's parametric memory, the agent utilizes a custom \texttt{GroundedRouteAgent} that performs graph searches over the actual \texttt{routes.csv}.
+    \item \textbf{Premium Chat UI:} The planner is enclosed in a styled \texttt{chat-container} within the GUI, featuring an inline input field and visually structured responses (markdown headers, emojis, and code-block path visualizations) for a premium user experience.
+\end{itemize}
+
+% TODO: ADD YOUR SCREENSHOT HERE
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{ai.png}
+    \caption{Agentic AI successfully processing a natural-language routing query grounded in the dataset.}
+\end{figure}
+
+\section{Bonus Task: Personal Route Maps}
+Going beyond the assignment parameters, a custom \textbf{Personal Route Maps} feature was implemented for every team member. 
+\begin{itemize}
+    \item \textbf{Member-Specific Visualization:} Each member (Hussnain, Uzair, Faez, and Hashir) has their specific daily commute visualized as a separate, isolated process map.
+    \item \textbf{Interactive Trace Builder:} An interactive "Custom Route Builder" was added to the GUI, allowing any user to select arbitrary origin and destination stops. The backend instantly computes the shortest commuting path and generates a personalized route map with transition timings.
+    \item \textbf{Aesthetic Consistency:} Personal maps follow the same high-contrast labeling requirements as the main process map, including explicit duration and route identification on every edge.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{hussnain.png}
+    \caption{GUI displaying personal route for Hussnain.}
+\end{figure}
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{uzair.png}
+    \caption{GUI displaying personal route for Uzair.}
+\end{figure}
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{faez.png}
+    \caption{GUI displaying personal route for Faez.}
+\end{figure}
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{hashir.png}
+    \caption{GUI displaying personal route for Hashir.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{hashir2.png}
+    \caption{GUI displaying personal route for Hashir (Continued).}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{hashir3.png}
+    \caption{GUI displaying personal route for Hashir Fullscreen(Continued).}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{custom1.png}
+    \caption{GUI displaying custom personal route}
+\end{figure}
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{custom2.png}
+    \caption{GUI displaying custom personal route (Continued)}
+\end{figure}
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{custom3.png}
+    \caption{GUI displaying custom personal route Fullscreen (Continued)}
+\end{figure}
+
+
+\section{Deployment Links}
+\begin{itemize}
+    \item \textbf{GitHub Repository:} \url{https://github.com/HussnainShah72/CDA-Route-Planer.git}
+    \item \textbf{Streamlit Dashboard:} \url{} % TODO: Add your Streamlit Cloud URL here
+\end{itemize}
+
+\section{Conclusion}
+This project successfully fulfills and exceeds all requirements of the CDA Bus Route Analysis assignment. By combining rigorous XES trace generation, interactive Graphviz mapping, dynamic bottleneck analysis, and cutting-edge Agentic AI, the resulting application serves as a comprehensive, modern Process Mining and Transit Analysis tool.
+
+\end{document}

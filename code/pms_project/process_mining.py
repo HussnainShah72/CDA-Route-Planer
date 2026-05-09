@@ -71,20 +71,20 @@ def build_process_dot(
     lines = [
         "digraph G {",
         "rankdir=TB;",
-        'graph [bgcolor="transparent", pad="0.5", nodesep="0.6", ranksep="0.9", splines="polyline"];',
-        'node [shape=box, style="rounded,filled", color="#3A4750", '
-        'fillcolor="#F7F9FB", fontname="Arial", fontsize=12, margin="0.25,0.15"];',
-        'edge [fontname="Arial", fontsize=10, color="#4E6E81", arrowsize=0.8];',
+        'graph [bgcolor="#E8DDB4", pad="0.5", nodesep="0.8", ranksep="1.2", splines="polyline"];',
+        'node [shape=box, style="rounded,filled", color="#DAA464", '
+        'fillcolor="#3D3D3D", fontname="Arial", fontsize=14, fontcolor="#E8DDB4", margin="0.25,0.15"];',
+        'edge [fontname="Arial", fontsize=11, color="black", fontcolor="black", arrowsize=0.9];',
     ]
 
     for node in nodes:
         lines.append(f'"{escape_dot(node)}";')
 
     for row in transitions.itertuples(index=False):
-        color = "#C62828" if row.avg_duration_seconds > threshold_seconds else "#4E6E81"
+        color = "#C62828" if row.avg_duration_seconds > threshold_seconds else "black"
         penwidth = "2.4" if row.avg_duration_seconds > threshold_seconds else "1.3"
         label = (
-            f"{row.duration_label}\\n"
+            f"{row.source} → {row.target} = {row.duration_label}\\n"
             f"cases: {row.case_frequency}"
         )
         lines.append(

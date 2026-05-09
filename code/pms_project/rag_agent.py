@@ -279,10 +279,15 @@ class GroundedRouteAgent:
         transfers = max(0, len(dedupe_consecutive(option.routes)) - 1)
 
         return (
-            f"Available path from {origin} to {destination}: {path}. "
-            f"Route(s): {route_summary}. Transfers required: {transfers}. "
-            f"Estimated travel time: {format_seconds(option.total_seconds)}. "
-            f"Next available departure from {origin}: {next_departure}."
+            f"### 🚍 Available Path\n"
+            f"**From:** {origin}  \n"
+            f"**To:** {destination}  \n\n"
+            f"**Route Details:**\n"
+            f"```\n{path}\n```\n"
+            f"- **Routes:** {route_summary}\n"
+            f"- **Transfers:** {transfers}\n"
+            f"- **Travel Time:** {format_seconds(option.total_seconds)}\n"
+            f"- **Next Departure:** {next_departure} (from {origin})\n"
         )
 
     def next_departure(self, stop: str, route_id: str | None) -> str:

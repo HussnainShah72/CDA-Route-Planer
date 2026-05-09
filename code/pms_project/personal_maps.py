@@ -100,18 +100,17 @@ def build_personal_dot(option: PathOption) -> str:
 
     lines = [
         "digraph G {",
-        "rankdir=LR;",
-        'graph [bgcolor="transparent", pad="0.2"];',
-        'node [shape=box, style="rounded,filled", color="#3A4750", '
-        'fillcolor="#F7F9FB", fontname="Arial", fontsize=10];',
-        'edge [fontname="Arial", fontsize=9, fontcolor="#FFFFFF", color="#2E7D32", penwidth=2];',
+        "rankdir=TB;",
+        'graph [bgcolor="#E8DDB4", pad="0.2"];',
+        'node [shape=box, style="rounded,filled", color="#DAA464", '
+        'fillcolor="#3D3D3D", fontname="Arial", fontsize=11, fontcolor="#E8DDB4"];',
+        'edge [fontname="Arial", fontsize=10, fontcolor="black", color="black", penwidth=2.5];',
     ]
-    for index, stop in enumerate(option.stops[:-1]):
-        target = option.stops[index + 1]
-        route = option.routes[index] if index < len(option.routes) else ""
+    for step in option.steps:
+        label = f"{step.route_id} = {format_seconds(step.duration_seconds)}"
         lines.append(
-            f'"{escape_dot(stop)}" -> "{escape_dot(target)}" '
-            f'[label="{escape_dot(route)}"];'
+            f'"{escape_dot(step.source)}" -> "{escape_dot(step.target)}" '
+            f'[label="{escape_dot(label)}"];'
         )
     lines.append("}")
     return "\n".join(lines)
